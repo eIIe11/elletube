@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Card as CardType } from "@/lib/types";
 
 const KIND_LABEL: Record<string, string> = {
@@ -21,6 +21,28 @@ function runtimeLabel(minutes: number | null) {
 export function PosterCard({ item, eager = false }: { item: CardType; eager?: boolean }) {
   const ref = useRef<HTMLAnchorElement>(null);
   const [loaded, setLoaded] = useState(false);
+  const [near, setNear] = useState(eager);
+
+  // Rails render every card up front, and `loading="lazy"` does not help inside
+  // a horizontal scroller — the browser fires every request at once and the
+  // connection pool to archive.org saturates. Only mount images near the
+  // viewport.
+  useEffect(() => {
+    if (near) return;
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setNear(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [near]);
 
   // Pointer-driven 3D tilt, written straight to the transform (no re-render).
   function tilt(e: React.PointerEvent<HTMLAnchorElement>) {
@@ -50,18 +72,20 @@ export function PosterCard({ item, eager = false }: { item: CardType; eager?: bo
     >
       <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-surface ring-1 ring-white/5 transition-shadow duration-300 group-hover:shadow-[0_18px_50px_-12px_rgba(255,45,111,0.45)] group-hover:ring-white/20">
         {!loaded && <div className="skeleton absolute inset-0" />}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`https://archive.org/services/img/${encodeURIComponent(item.i)}`}
-          alt=""
-          loading={eager ? "eager" : "lazy"}
-          decoding="async"
-          onLoad={() => setLoaded(true)}
-          onError={() => setLoaded(true)}
-          className={`h-full w-full object-cover transition-opacity duration-500 ${
-            loaded ? "opacity-100" : "opacity-0"
-          }`}
-        />
+        {near && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`https://archive.org/services/img/${encodeURIComponent(item.i)}`}
+            alt=""
+            loading={eager ? "eager" : "lazy"}
+            decoding="async"
+            onLoad={() => setLoaded(true)}
+            onError={() => setLoaded(true)}
+            className={`h-full w-full object-cover transition-opacity duration-500 ${
+              loaded ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        )}
         <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/85 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         <span className="absolute left-2 top-2 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/85 backdrop-blur">
           {KIND_LABEL[item.k] ?? item.k}

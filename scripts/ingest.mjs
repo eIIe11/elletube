@@ -111,6 +111,17 @@ const GAME_SUBJECT =
 const SPEEDRUN_TITLE =
   /\((snes|nes|n64|ps1|ps2|psx|gba|gbc|nds|genesis|gamecube|wii|dos|pc|arcade)\)\s*-\s*\d+[:.]\d+/i;
 
+// Archive description fields are user-editable and get vandalised: threats
+// and doxxing have appeared in place of synopses, including on well-known
+// public domain films.
+const ABUSIVE_TEXT =
+  /(pipe ?bomb|bomba de tubo|se ha colocado una bomba|\b(a |the )?bomb (has been |was )?(placed|planted)\b|i (will|am going to) kill (you|them|everyone)|voy a matar|shoot up the (school|building|place)|going to blow up)/i;
+
+/** Vandalised synopses are dropped; the film itself is still legitimate. */
+function safeOverview(text) {
+  return ABUSIVE_TEXT.test(text) ? "" : text;
+}
+
 // Same idea against the synopsis, for uploads with an innocuous title.
 const NOT_CINEMA_DESC =
   /(speed ?run|speedrun|playthrough|let'?s play|recorded (live )?on twitch|full (game )?playthrough)/i;
@@ -182,7 +193,7 @@ async function fetchPage(source, page) {
       kind: source.kind,
       title: clean(d.title) || d.identifier,
       year: year && year > 1870 && year <= new Date().getFullYear() ? year : null,
-      overview: clean(d.description).slice(0, 700),
+      overview: safeOverview(clean(d.description).slice(0, 700)),
       genres: [source.genre],
       tags: toArray(d.subject)
         .slice(0, 6)
@@ -206,6 +217,7 @@ function isHighQuality(item) {
   if (NOT_CINEMA.test(item.title)) return false;
   if (SPEEDRUN_TITLE.test(item.title)) return false;
   if (NOT_CINEMA_DESC.test(item.overview)) return false;
+  if (ABUSIVE_TEXT.test(item.title)) return false;
   if (item.tags.some((t) => GAME_SUBJECT.test(t))) return false;
   if (item.popularity < MIN_DOWNLOADS) return false;
   if (!item.formats.some((f) => PLAYABLE.test(f))) return false;

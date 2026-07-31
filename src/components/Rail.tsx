@@ -1,9 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Card as CardType } from "@/lib/types";
+import {
+  applyPreferences,
+  getPreferences,
+  getServerPreferences,
+  subscribe,
+} from "@/lib/preferences";
 import { PosterCard } from "./Card";
 
 export function Rail({
@@ -19,6 +25,8 @@ export function Rail({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: true, end: false });
+  const prefs = useSyncExternalStore(subscribe, getPreferences, getServerPreferences);
+  const visible = useMemo(() => applyPreferences(items, prefs), [items, prefs]);
 
   const measure = useCallback(() => {
     const el = ref.current;
@@ -31,7 +39,7 @@ export function Rail({
 
   useEffect(() => {
     measure();
-  }, [measure, items]);
+  }, [measure, visible]);
 
   function nudge(direction: 1 | -1) {
     const el = ref.current;
@@ -39,7 +47,7 @@ export function Rail({
     el.scrollBy({ left: direction * el.clientWidth * 0.85, behavior: "smooth" });
   }
 
-  if (!items.length) return null;
+  if (!visible.length) return null;
 
   return (
     <section className="group/rail relative py-4">
@@ -61,7 +69,7 @@ export function Rail({
           onScroll={measure}
           className="rail flex gap-3 overflow-x-auto px-4 pb-2 sm:px-8"
         >
-          {items.map((item, index) => (
+          {visible.map((item, index) => (
             <PosterCard key={item.i} item={item} eager={eager && index < 6} />
           ))}
         </div>

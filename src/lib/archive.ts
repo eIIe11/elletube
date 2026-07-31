@@ -27,6 +27,17 @@ const FORMAT_RANK: Record<string, number> = {
 const first = (value: string | string[] | undefined): string =>
   Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 
+/**
+ * Archive description fields are publicly editable and have been vandalised
+ * with threats and doxxing; suppress the synopsis rather than render it.
+ */
+const ABUSIVE_TEXT =
+  /(pipe ?bomb|bomba de tubo|se ha colocado una bomba|\b(a |the )?bomb (has been |was )?(placed|planted)\b|i (will|am going to) kill (you|them|everyone)|voy a matar|shoot up the (school|building|place)|going to blow up)/i;
+
+function safeOverview(text: string): string {
+  return ABUSIVE_TEXT.test(text) ? "" : text;
+}
+
 function stripHtml(text: string): string {
   return text
     .replace(/<[^>]*>/g, " ")
@@ -77,7 +88,7 @@ export async function getArchiveItem(id: string) {
     id,
     title: first(meta.title) || id,
     year,
-    overview: stripHtml(first(meta.description)),
+    overview: safeOverview(stripHtml(first(meta.description))),
     creator: first(meta.creator),
     license: first(meta.licenseurl) || "Public domain / open licence",
     runtime: seconds ? Math.round(seconds / 60) : null,

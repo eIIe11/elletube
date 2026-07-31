@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PosterCard } from "@/components/Card";
+import { CardGrid } from "@/components/CardGrid";
 import { getGenrePage, getGenres } from "@/lib/catalog";
 
 export const revalidate = 3600;
@@ -40,11 +40,7 @@ export default async function GenrePage({
         {data.total.toLocaleString()} titles · page {data.page + 1} of {data.pages}
       </p>
 
-      <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-        {data.items.map((item, index) => (
-          <PosterCard key={item.i} item={item} eager={index < 12} />
-        ))}
-      </div>
+      <CardGrid items={data.items} />
 
       <nav className="mt-12 flex items-center justify-center gap-3">
         {data.page > 0 && (

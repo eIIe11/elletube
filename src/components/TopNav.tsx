@@ -15,6 +15,7 @@ const LINKS = [
   { href: "/mood", label: "Mood" },
   { href: "/roulette", label: "Roulette" },
   { href: "/my-list", label: "My List" },
+  { href: "/preferences", label: "Preferences" },
 ];
 
 export function TopNav() {
