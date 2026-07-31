@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ElleTube
 
-## Getting Started
+An ad-free streaming platform for openly licensed video: 35,000+ full-length
+films, series and documentaries from the Internet Archive, plus 8,000+
+free-to-air live channels from the open IPTV-org index.
 
-First, run the development server:
+No ads. No trackers. No accounts.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## How it works
+
+```
+scripts/ingest.mjs   → src/data/{catalog,live}.json   (raw, gitignored)
+scripts/prepare.mjs  → public/data/**                 (lean CDN shards)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+* **Ingest** queries the Internet Archive across 46 dedicated categories and the
+  IPTV-org channel index, applying quality gates: full-length only
+  (≥40 min or ≥250 MB), a browser-playable format, and a popularity floor.
+* **Prepare** splits the catalogue into small static JSON shards — 48 cards per
+  category page, per-category live channel lists, country shards, and compact
+  indices for search and discovery — so no page ever ships the whole catalogue.
+* **Detail and playback** resolve straight from the source archive at request
+  time, so no per-title files are deployed.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Refresh the catalogue with:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run catalog     # ingest + prepare
+```
 
-## Learn More
+## Features
 
-To learn more about Next.js, take a look at the following resources:
+| Feature | What it does |
+| --- | --- |
+| Time Machine | Decade dial that reskins the page and filters by era |
+| Mood mixer | Three sliders re-rank all 35k titles client-side, live |
+| Roulette | Slot-machine spin that lands on a title and auto-plays |
+| Zap | Arrow keys surf live channels; `Z` jumps somewhere random |
+| My List | Local-only watchlist, no account needed |
+| Resume | Playback position remembered per title |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Player shortcuts: `space` play/pause · `←/→` seek 10s (shift 30s) · `↑/↓` volume
+· `m` mute · `f` fullscreen · `p` picture-in-picture. Press `/` anywhere to search.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Licensing and availability
 
-## Deploy on Vercel
+Only public domain and Creative Commons material is catalogued. Live channels
+are publicly broadcast free-to-air feeds; `src/lib/availability.ts` gates each
+source to the territories its broadcaster serves and shows a clear notice rather
+than a dead player when a feed is out of region.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Development
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm install
+npm run catalog     # first run only: builds public/data
+npm run dev
+```
+
+```bash
+npm run lint
+npm run build
+```

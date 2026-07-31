@@ -1,0 +1,95 @@
+/** Resolves playable files + metadata straight from the source archive. */
+
+type ArchiveFile = {
+  name: string;
+  format?: string;
+  size?: string;
+  length?: string;
+  height?: string;
+};
+
+type ArchiveMetadata = {
+  metadata?: Record<string, string | string[]>;
+  files?: ArchiveFile[];
+  server?: string;
+  dir?: string;
+};
+
+const FORMAT_RANK: Record<string, number> = {
+  "h.264": 5,
+  "hd mp4": 5,
+  "mpeg4": 4,
+  "ia mp4": 4,
+  "512kb mpeg4": 3,
+  "ogg video": 1,
+};
+
+const first = (value: string | string[] | undefined): string =>
+  Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
+
+function stripHtml(text: string): string {
+  return text
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseSeconds(length: string | undefined): number | null {
+  if (!length) return null;
+  if (!length.includes(":")) {
+    const n = Number(length);
+    return Number.isFinite(n) ? n : null;
+  }
+  const parts = length.split(":").map(Number);
+  if (parts.some(Number.isNaN)) return null;
+  return parts.reduce((acc, part) => acc * 60 + part, 0);
+}
+
+export async function getArchiveItem(id: string) {
+  const res = await fetch(`https://archive.org/metadata/${encodeURIComponent(id)}`, {
+    next: { revalidate: 86400 },
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as ArchiveMetadata;
+  if (!data.metadata) return null;
+
+  const meta = data.metadata;
+  const files = data.files ?? [];
+
+  let best: ArchiveFile | null = null;
+  let bestScore = -1;
+  for (const file of files) {
+    const rank = FORMAT_RANK[String(file.format ?? "").toLowerCase()];
+    if (!rank) continue;
+    const score = rank * 1e12 + Number(file.size ?? 0);
+    if (score > bestScore) {
+      bestScore = score;
+      best = file;
+    }
+  }
+
+  const seconds = parseSeconds(best?.length);
+  const year = Number(first(meta.year)) || Number(first(meta.date).slice(0, 4)) || null;
+
+  return {
+    id,
+    title: first(meta.title) || id,
+    year,
+    overview: stripHtml(first(meta.description)),
+    creator: first(meta.creator),
+    license: first(meta.licenseurl) || "Public domain / open licence",
+    runtime: seconds ? Math.round(seconds / 60) : null,
+    subjects: (Array.isArray(meta.subject) ? meta.subject : [first(meta.subject)])
+      .flatMap((s) => String(s).split(/[;,]/))
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 10),
+    streamUrl: best ? `https://archive.org/download/${encodeURIComponent(id)}/${encodeURIComponent(best.name)}` : null,
+    poster: `https://archive.org/services/img/${encodeURIComponent(id)}`,
+    sourceUrl: `https://archive.org/details/${encodeURIComponent(id)}`,
+  };
+}
+
+export type ArchiveItem = NonNullable<Awaited<ReturnType<typeof getArchiveItem>>>;
