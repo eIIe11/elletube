@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/", label: "Home" },
   { href: "/browse", label: "Browse" },
   { href: "/live", label: "Live TV" },
+  { href: "/library", label: "Library" },
   { href: "/time-machine", label: "Time Machine" },
   { href: "/mood", label: "Mood" },
   { href: "/roulette", label: "Roulette" },

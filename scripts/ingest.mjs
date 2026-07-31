@@ -67,8 +67,18 @@ const SOURCES = [
   { genre: "Home & DIY", kind: "series", pages: 2, q: subj("home improvement", "diy", "renovation", "gardening", "craft") },
   { genre: "Fashion & Beauty", kind: "series", pages: 2, q: subj("fashion", "style", "beauty", "makeover") },
   { genre: "Comedy Specials", kind: "documentary", pages: 2, q: subj("stand-up comedy", "comedy special", "sketch comedy") },
-  { genre: "Talk Shows", kind: "series", pages: 2, q: subj("talk show", "interview", "chat show") },
-  { genre: "Wellness", kind: "series", pages: 2, q: subj("yoga", "fitness", "meditation", "health", "wellness") },
+  { genre: "Talk Shows", kind: "series", pages: 2, q: subj("talk show", "chat show") },
+  { genre: "Interviews", kind: "series", pages: 4, minRuntime: 20, q: `(${subj("interview", "interviews", "round table", "roundtable", "conversation", "in conversation", "oral history")} OR title:("interview" OR "round table" OR "in conversation with"))` },
+  { genre: "Wellness", kind: "series", pages: 2, q: subj("meditation", "health", "wellness", "mindfulness") },
+
+  // Fitness. A workout is complete at 15 minutes, so these opt out of the
+  // feature-length floor.
+  { genre: "Yoga", kind: "series", pages: 3, minRuntime: 15, q: `(${subj("yoga", "vinyasa", "hatha", "ashtanga")} OR title:("yoga"))` },
+  { genre: "Pilates", kind: "series", pages: 1, minRuntime: 15, q: `(${subj("pilates", "barre")} OR title:("pilates"))` },
+  { genre: "Strength & Dumbbells", kind: "series", pages: 2, minRuntime: 15, q: `(${subj("workout", "weight training", "bodybuilding", "strength training", "calisthenics")} OR title:("dumbbell"))` },
+  { genre: "Cardio & HIIT", kind: "series", pages: 2, minRuntime: 15, q: `(${subj("aerobics", "exercise", "cardio", "hiit")} OR title:("aerobics"))` },
+  { genre: "Stretch & Mobility", kind: "series", pages: 2, minRuntime: 10, q: subj("stretching", "tai chi", "qigong", "mobility", "flexibility") },
+  { genre: "Dance Workouts", kind: "series", pages: 1, minRuntime: 15, q: `(${subj("dance workout", "zumba", "dance exercise", "aerobic dance")} OR title:("dance workout"))` },
 
   // Cult & world
   { genre: "Cult Classics", kind: "movie", pages: 3, q: subj("cult film", "b-movie", "exploitation", "grindhouse") },
@@ -212,7 +222,7 @@ async function fetchPage(source, page) {
 
 const PLAYABLE = /^(h\.264|mpeg4|512kb mpeg4|ia mp4|hd mp4|matroska|ogg video)$/i;
 
-function isHighQuality(item) {
+function isHighQuality(item, minRuntime = MIN_RUNTIME_MIN) {
   if (JUNK_TITLE.test(item.title)) return false;
   if (NOT_CINEMA.test(item.title)) return false;
   if (SPEEDRUN_TITLE.test(item.title)) return false;
@@ -221,8 +231,9 @@ function isHighQuality(item) {
   if (item.tags.some((t) => GAME_SUBJECT.test(t))) return false;
   if (item.popularity < MIN_DOWNLOADS) return false;
   if (!item.formats.some((f) => PLAYABLE.test(f))) return false;
-  if (item.runtime !== null) return item.runtime >= MIN_RUNTIME_MIN;
-  return item.bytes >= MIN_ITEM_BYTES;
+  if (item.runtime !== null) return item.runtime >= minRuntime;
+  // Without a runtime, fall back to size, scaled to the category's floor.
+  return item.bytes >= MIN_ITEM_BYTES * (minRuntime / MIN_RUNTIME_MIN);
 }
 
 async function fetchSource(source) {
@@ -248,7 +259,7 @@ async function buildVod() {
       continue;
     }
     for (const item of items) {
-      if (!item.title || !isHighQuality(item)) continue;
+      if (!item.title || !isHighQuality(item, source.minRuntime)) continue;
       const existing = seen.get(item.id);
       if (existing) {
         existing.genres = [...new Set([...existing.genres, ...item.genres])];
@@ -333,17 +344,94 @@ async function buildLive() {
   return list;
 }
 
+/**
+ * Books and audiobooks. LibriVox recordings stream in our own player;
+ * Project Gutenberg texts are read or downloaded (their EPUB/MOBI files work
+ * with Send to Kindle). Both are public domain.
+ */
+const LIBRARY_SOURCES = [
+  { shelf: "Audiobooks", kind: "audiobook", media: "audio", pages: 4, q: "collection:(librivoxaudio)" },
+  { shelf: "Fiction", kind: "book", media: "texts", pages: 3, q: `collection:(gutenberg) AND ${subj("fiction", "novel")}` },
+  { shelf: "Classics", kind: "book", media: "texts", pages: 3, q: `collection:(gutenberg) AND ${subj("classic literature", "literature")}` },
+  { shelf: "Mystery & Crime", kind: "book", media: "texts", pages: 2, q: `collection:(gutenberg) AND ${subj("detective and mystery stories", "crime")}` },
+  { shelf: "Science Fiction", kind: "book", media: "texts", pages: 2, q: `collection:(gutenberg) AND ${subj("science fiction", "fantasy fiction")}` },
+  { shelf: "Poetry", kind: "book", media: "texts", pages: 1, q: `collection:(gutenberg) AND ${subj("poetry")}` },
+  { shelf: "History & Biography", kind: "book", media: "texts", pages: 2, q: `collection:(gutenberg) AND ${subj("history", "biography")}` },
+];
+
+async function fetchLibraryPage(source, page) {
+  const params = new URLSearchParams({
+    q: `${source.q} AND mediatype:(${source.media})`,
+    sort: "downloads desc",
+    rows: "500",
+    page: String(page),
+    output: "json",
+  });
+  for (const f of ["identifier", "title", "creator", "year", "date", "subject", "downloads", "runtime", "language"]) {
+    params.append("fl[]", f);
+  }
+  const data = await getJSON(`https://archive.org/advancedsearch.php?${params}`);
+  return (data?.response?.docs ?? []).map((d) => ({
+    id: d.identifier,
+    kind: source.kind,
+    title: clean(d.title) || d.identifier,
+    author: clean(d.creator).slice(0, 90),
+    year: Number(d.year) || Number(String(d.date ?? "").slice(0, 4)) || null,
+    shelves: [source.shelf],
+    language: first(d.language) || "",
+    popularity: Number(d.downloads) || 0,
+  }));
+}
+
+const first = (v) => (Array.isArray(v) ? (v[0] ?? "") : (v ?? ""));
+
+async function buildLibrary() {
+  const seen = new Map();
+  for (const source of LIBRARY_SOURCES) {
+    let count = 0;
+    for (let page = 1; page <= source.pages; page++) {
+      let docs = [];
+      try {
+        docs = await fetchLibraryPage(source, page);
+      } catch (err) {
+        console.warn(`  ! ${source.shelf} p${page} failed: ${err.message}`);
+        break;
+      }
+      for (const entry of docs) {
+        if (!entry.title || JUNK_TITLE.test(entry.title)) continue;
+        if (ABUSIVE_TEXT.test(entry.title)) continue;
+        const existing = seen.get(entry.id);
+        if (existing) {
+          existing.shelves = [...new Set([...existing.shelves, ...entry.shelves])];
+          continue;
+        }
+        seen.set(entry.id, entry);
+        count++;
+      }
+      if (docs.length < 500) break;
+      await sleep(250);
+    }
+    console.log(`  ${source.shelf}: ${count}`);
+    await sleep(300);
+  }
+  return [...seen.values()].sort((a, b) => b.popularity - a.popularity);
+}
+
 async function main() {
   console.log("Fetching Internet Archive categories...");
   const vod = await buildVod();
   console.log(`  total titles: ${vod.length}`);
   console.log("Fetching IPTV-org open live catalog...");
   const live = await buildLive();
+  console.log("Fetching LibriVox and Project Gutenberg library...");
+  const library = await buildLibrary();
+  console.log(`  total library entries: ${library.length}`);
 
   await mkdir(OUT, { recursive: true });
   await writeFile(join(OUT, "catalog.json"), JSON.stringify(vod), "utf8");
   await writeFile(join(OUT, "live.json"), JSON.stringify(live), "utf8");
-  console.log("Wrote src/data/catalog.json and src/data/live.json");
+  await writeFile(join(OUT, "library.json"), JSON.stringify(library), "utf8");
+  console.log("Wrote catalog.json, live.json and library.json");
 }
 
 main().catch((err) => {

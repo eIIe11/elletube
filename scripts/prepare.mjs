@@ -46,6 +46,7 @@ function toCard(item) {
 async function main() {
   const catalog = JSON.parse(await readFile(join(SRC, "catalog.json"), "utf8"));
   const live = JSON.parse(await readFile(join(SRC, "live.json"), "utf8"));
+  const library = JSON.parse(await readFile(join(SRC, "library.json"), "utf8"));
 
   await rm(OUT, { recursive: true, force: true });
 
@@ -112,6 +113,9 @@ async function main() {
     "Space",
     "World Cinema",
     "Cult Classics",
+    "Interviews",
+    "Yoga",
+    "Strength & Dumbbells",
     "Concerts",
     "Kids & Family",
     "Silent Era",
@@ -163,6 +167,37 @@ async function main() {
     countries,
     featured: live.filter((c) => c.logo).slice(0, 40),
     total: live.length,
+  });
+
+  // --- library (books + audiobooks) ---------------------------------------
+  const byShelf = new Map();
+  for (const entry of library) {
+    for (const shelf of entry.shelves) {
+      if (!byShelf.has(shelf)) byShelf.set(shelf, []);
+      byShelf.get(shelf).push(entry);
+    }
+  }
+  const shelves = [];
+  for (const [name, entries] of byShelf) {
+    const slug = slugify(name);
+    const pages = Math.max(1, Math.ceil(entries.length / PER_PAGE));
+    for (let page = 0; page < pages; page++) {
+      await writeJSON(`library/${slug}/${page}.json`, {
+        name,
+        slug,
+        page,
+        pages,
+        total: entries.length,
+        items: entries.slice(page * PER_PAGE, (page + 1) * PER_PAGE),
+      });
+    }
+    shelves.push({ name, slug, count: entries.length, pages });
+  }
+  shelves.sort((a, b) => b.count - a.count);
+  await writeJSON("library/index.json", {
+    shelves,
+    total: library.length,
+    featured: library.slice(0, 24),
   });
 
   // --- discovery index (Time Machine, Mood Mixer, Roulette) ---------------

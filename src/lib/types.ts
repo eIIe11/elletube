@@ -71,3 +71,29 @@ export type TitleDetail = {
   streamUrl: string | null;
   poster: string;
 };
+
+export type LibraryEntry = {
+  id: string;
+  kind: "book" | "audiobook";
+  title: string;
+  author: string;
+  year: number | null;
+  shelves: string[];
+  language: string;
+  popularity: number;
+};
+
+export type LibraryIndex = {
+  shelves: { name: string; slug: string; count: number; pages: number }[];
+  total: number;
+  featured: LibraryEntry[];
+};
+
+export type LibraryShelfPage = {
+  name: string;
+  slug: string;
+  page: number;
+  pages: number;
+  total: number;
+  items: LibraryEntry[];
+};

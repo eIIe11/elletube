@@ -6,6 +6,8 @@ import type {
   HomePayload,
   LiveCategory,
   LiveIndex,
+  LibraryIndex,
+  LibraryShelfPage,
 } from "./types";
 
 const DATA = join(process.cwd(), "public", "data");
@@ -21,6 +23,11 @@ export const getGenrePage = (slug: string, page: number) =>
 export const getLiveIndex = () => readShard<LiveIndex>("live/index.json");
 export const getLiveCategory = (slug: string) =>
   readShard<LiveCategory>(`live/${slug}.json`);
+
+export const getLibraryIndex = () =>
+  readShard<LibraryIndex>("library/index.json");
+export const getLibraryShelf = (slug: string, page: number) =>
+  readShard<LibraryShelfPage>(`library/${slug}/${page}.json`);
 
 export const posterUrl = (id: string) =>
   `https://archive.org/services/img/${id}`;

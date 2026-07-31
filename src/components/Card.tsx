@@ -11,6 +11,13 @@ const KIND_LABEL: Record<string, string> = {
   live: "Live",
 };
 
+/** Deterministic hue per id, so a fallback tile looks intentional, not broken. */
+function fallbackHue(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) % 360;
+  return hash;
+}
+
 function runtimeLabel(minutes: number | null) {
   if (!minutes || minutes < 1) return "";
   const h = Math.floor(minutes / 60);
@@ -21,7 +28,9 @@ function runtimeLabel(minutes: number | null) {
 export function PosterCard({ item, eager = false }: { item: CardType; eager?: boolean }) {
   const ref = useRef<HTMLAnchorElement>(null);
   const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [near, setNear] = useState(eager);
+  const hue = fallbackHue(item.i);
 
   // Rails render every card up front, and `loading="lazy"` does not help inside
   // a horizontal scroller — the browser fires every request at once and the
@@ -71,8 +80,22 @@ export function PosterCard({ item, eager = false }: { item: CardType; eager?: bo
       className="group relative block w-[150px] shrink-0 transition-transform duration-200 ease-out will-change-transform sm:w-[176px]"
     >
       <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-surface ring-1 ring-white/5 transition-shadow duration-300 group-hover:shadow-[0_18px_50px_-12px_rgba(255,45,111,0.45)] group-hover:ring-white/20">
-        {!loaded && <div className="skeleton absolute inset-0" />}
-        {near && (
+        {!loaded && !failed && <div className="skeleton absolute inset-0" />}
+        {failed && (
+          <div
+            className="absolute inset-0 flex items-end p-3"
+            style={{
+              background: `linear-gradient(150deg, hsl(${hue} 62% 26%), hsl(${
+                (hue + 48) % 360
+              } 58% 12%))`,
+            }}
+          >
+            <span className="line-clamp-4 text-sm font-semibold leading-tight text-white/90">
+              {item.t}
+            </span>
+          </div>
+        )}
+        {near && !failed && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={`https://archive.org/services/img/${encodeURIComponent(item.i)}`}
@@ -80,7 +103,7 @@ export function PosterCard({ item, eager = false }: { item: CardType; eager?: bo
             loading={eager ? "eager" : "lazy"}
             decoding="async"
             onLoad={() => setLoaded(true)}
-            onError={() => setLoaded(true)}
+            onError={() => setFailed(true)}
             className={`h-full w-full object-cover transition-opacity duration-500 ${
               loaded ? "opacity-100" : "opacity-0"
             }`}
