@@ -3,7 +3,7 @@ import { getGenres } from "@/lib/catalog";
 
 export const revalidate = 3600;
 
-export const metadata = { title: "Browse categories — ElleTube" };
+export const metadata = { title: "Browse categories — BooTube" };
 
 export default async function BrowsePage() {
   const genres = await getGenres();

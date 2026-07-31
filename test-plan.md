@@ -1,10 +1,10 @@
-# ElleTube E2E Test Plan (local dev, localhost:3000)
+# BooTube E2E Test Plan (local dev, localhost:3000)
 
-Evidence: EntryScreen.tsx:26-45 (sessionStorage `elletube:entered`, Enter/Space), SearchOverlay.tsx:43-55 (`/`, Esc),
+Evidence: EntryScreen.tsx:26-45 (sessionStorage `bootube:entered`, Enter/Space), SearchOverlay.tsx:43-55 (`/`, Esc),
 Player.tsx:69-140 (resume localStorage + shortcuts space/k, ←/→, ↑/↓, m, f, p), LiveBrowser.tsx:59-80 (Esc, ←/→, Z),
 browse/[slug]/page.tsx:28 + watch/[id]/page.tsx:15 (notFound).
 
-1. Entry screen: first load `/` shows splash with "Enter ElleTube"; press Enter → splash gone. Navigate to /browse and back → no splash.
+1. Entry screen: first load `/` shows splash with "Enter BooTube"; press Enter → splash gone. Navigate to /browse and back → no splash.
 2. Home: hero visible; click 3rd dot indicator → hero title text changes. Hover a rail → right arrow appears; click → rail scrolls (posters change).
 3. Browse: /browse → click a category → grid of ≥1 posters; click Next → page 2 shows different titles; Previous returns.
 4. Search: press `/` → overlay; type "star" → ≥1 ranked results visible; Esc closes; reopen, click result → navigates to /title/....

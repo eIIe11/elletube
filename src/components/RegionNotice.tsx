@@ -3,8 +3,8 @@
 import { useSyncExternalStore } from "react";
 import { sourceAvailable, type MediaSource } from "@/lib/availability";
 
-const KEY = "elletube:region";
-const EVENT = "elletube:region-changed";
+const KEY = "bootube:region";
+const EVENT = "bootube:region-changed";
 
 let cached: string | null = null;
 const listeners = new Set<() => void>();

@@ -17,7 +17,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   boosted: ["Cult Classics", "World Cinema", "Open Movies", "Short Films"],
 };
 
-const KEY = "elletube:prefs";
+const KEY = "bootube:prefs";
 
 let cached: Preferences | null = null;
 const listeners = new Set<() => void>();

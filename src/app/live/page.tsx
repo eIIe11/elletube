@@ -4,7 +4,7 @@ import type { LiveChannel } from "@/lib/types";
 
 export const revalidate = 3600;
 
-export const metadata = { title: "Live TV — ElleTube" };
+export const metadata = { title: "Live TV — BooTube" };
 
 export default async function LivePage() {
   const index = await getLiveIndex();

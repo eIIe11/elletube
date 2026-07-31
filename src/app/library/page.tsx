@@ -3,7 +3,7 @@ import { getLibraryIndex } from "@/lib/catalog";
 
 export const revalidate = 3600;
 
-export const metadata = { title: "Library — ElleTube" };
+export const metadata = { title: "Library — BooTube" };
 
 export default async function LibraryPage() {
   const index = await getLibraryIndex();

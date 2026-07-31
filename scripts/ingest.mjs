@@ -95,7 +95,15 @@ const SOURCES = [
  * and only reachable by deliberately opening the Heavy Viewing category.
  */
 const HEAVY_VIEWING =
-  /(holocaust|concentration camp|death camp|auschwitz|buchenwald|dachau|treblinka|bergen-belsen|nazi atroc|genocide|khmer rouge|killing fields|rwandan? genocide|ethnic cleansing|mass grave|war crimes?|nuremberg trial|einsatzgruppen|lynching|massacre|torture|execution footage|atomic bomb victims|hiroshima victims|nanking massacre|famine victims)/i;
+  /(holocaust|concentration camp|death camp|auschwitz|buchenwald|dachau|treblinka|bergen-belsen|nazi atroc|genocide|khmer rouge|killing fields|rwandan? genocide|ethnic cleansing|mass grave|war crimes?|nuremberg trial|einsatzgruppen|lynching|massacre|torture|execution footage|atomic bomb victims|hiroshima victims|nanking massacre|famine victims|autopsy|crime scene photos|graphic violence|shock (video|footage)|snuff)/i;
+
+/**
+ * Uploads that are neither cinema nor archive worth browsing: hate propaganda,
+ * conspiracy and shock oddities that the Archive hosts but nobody is looking
+ * for here. Rejected outright rather than filed away.
+ */
+const UNWANTED =
+  /(white (power|nationalis)|neo-?nazi (rally|propaganda)|nazi propaganda|hitler speech|mein kampf|racial hygiene|holocaust denial|flat earth|qanon|great replacement|antisemit|blood libel|jihadi|isis (video|execution)|beheading|self-harm|pro-?ana|animal (cruelty|torture)|snuff)/i;
 
 const FIELDS = [
   "identifier",
@@ -238,6 +246,8 @@ function isHighQuality(item, minRuntime = MIN_RUNTIME_MIN) {
   if (NOT_CINEMA.test(item.title)) return false;
   if (SPEEDRUN_TITLE.test(item.title)) return false;
   if (NOT_CINEMA_DESC.test(item.overview)) return false;
+  if (UNWANTED.test(item.title) || UNWANTED.test(item.overview)) return false;
+  if (item.tags.some((t) => UNWANTED.test(t))) return false;
   if (ABUSIVE_TEXT.test(item.title)) return false;
   if (item.tags.some((t) => GAME_SUBJECT.test(t))) return false;
   if (item.popularity < MIN_DOWNLOADS) return false;

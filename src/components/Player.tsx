@@ -10,7 +10,7 @@ type Props = {
   live?: boolean;
 };
 
-const RESUME_PREFIX = "elletube:progress:";
+const RESUME_PREFIX = "bootube:progress:";
 
 export function Player({ src, title, storageKey, poster, live = false }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);

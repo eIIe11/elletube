@@ -1,4 +1,4 @@
-# ElleTube
+# BooTube
 
 An ad-free streaming platform for openly licensed video: 35,000+ full-length
 films, series and documentaries from the Internet Archive, plus 8,000+

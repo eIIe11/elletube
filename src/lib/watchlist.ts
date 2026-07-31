@@ -1,7 +1,7 @@
 import type { Card } from "./types";
 
-const KEY = "elletube:list";
-const EVENT = "elletube:list-changed";
+const KEY = "bootube:list";
+const EVENT = "bootube:list-changed";
 
 let snapshot: Card[] | null = null;
 const EMPTY: Card[] = [];

@@ -34,7 +34,7 @@ function label(seconds: number | null) {
 /** Listening position is per-book, kept on the device only. */
 export function AudiobookPlayer({ id, tracks }: { id: string; tracks: AudioTrack[] }) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const key = `elletube:listen:${id}`;
+  const key = `bootube:listen:${id}`;
 
   const saved = useSyncExternalStore(
     useCallback(() => () => {}, []),
