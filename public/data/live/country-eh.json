@@ -1,1 +1,1 @@
-{"name":"EH","slug":"country-eh","channels":[{"id":"RASDTV.eh","kind":"live","title":"RASD TV","url":"https://cloud.streamingconnect.tv/hls/rasdtv2/rasdtv.m3u8","height":1080,"country":"EH","languages":[],"logo":null,"genres":["General"]}]}
+{"name":"EH","slug":"country-eh","channels":[{"id":"RASDTV.eh","kind":"live","title":"RASD TV","url":"https://cloud.streamingconnect.tv/hls/rasdtv2/rasdtv.m3u8","height":1080,"country":"EH","languages":[],"logo":"https://i.imgur.com/9Pb8806.png","genres":["General"]}]}

@@ -44,6 +44,8 @@ export type LiveChannel = {
   languages: string[];
   logo: string | null;
   genres: string[];
+  /** Live but territory-locked: plays from inside the broadcaster's region. */
+  geo?: boolean;
 };
 
 export type LiveIndex = {
@@ -57,6 +59,11 @@ export type LiveCategory = {
   name: string;
   slug: string;
   channels: LiveChannel[];
+};
+
+export type LiveAustralia = {
+  total: number;
+  groups: { name: string; channels: LiveChannel[] }[];
 };
 
 export type TitleDetail = {

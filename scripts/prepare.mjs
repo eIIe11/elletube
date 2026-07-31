@@ -165,6 +165,31 @@ async function main() {
   }
   countries.sort((a, b) => b.count - a.count);
 
+  // Australia gets its own surface, grouped by broadcaster rather than genre.
+  const AU_NETWORKS = [
+    { name: "ABC", match: /^abc\b|australian broadcasting/i },
+    { name: "SBS", match: /^sbs\b|\bnitv\b/i },
+    { name: "Seven Network", match: /^(7|seven)\b|7mate|7two|7flix|7bravo/i },
+    { name: "Nine Network", match: /^(9|nine)\b|9gem|9go|9life|9rush/i },
+    { name: "Network 10", match: /^(10|ten)\b|10 bold|10 peach|10 shake/i },
+    { name: "News", match: /news|sky/i },
+    { name: "Sport", match: /sport|racing|footy|cricket/i },
+    { name: "Music", match: /music|mtv|hits|country/i },
+  ];
+  const au = byCountry.get("AU") ?? [];
+  const claimed = new Set();
+  const auGroups = [];
+  for (const network of AU_NETWORKS) {
+    const channels = au.filter(
+      (c) => !claimed.has(c.id) && network.match.test(c.title)
+    );
+    channels.forEach((c) => claimed.add(c.id));
+    if (channels.length) auGroups.push({ name: network.name, channels });
+  }
+  const rest = au.filter((c) => !claimed.has(c.id));
+  if (rest.length) auGroups.push({ name: "More Australian channels", channels: rest });
+  await writeJSON("live/australia.json", { total: au.length, groups: auGroups });
+
   await writeJSON("live/index.json", {
     categories: liveIndex,
     countries,

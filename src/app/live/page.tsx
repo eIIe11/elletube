@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getLiveCategory, getLiveIndex } from "@/lib/catalog";
 import { LiveBrowser } from "@/components/LiveBrowser";
 import type { LiveChannel } from "@/lib/types";
@@ -27,7 +28,10 @@ export default async function LivePage() {
       </div>
       <p className="mt-2 text-sm text-muted">
         {index.total.toLocaleString()} free-to-air channels from the open IPTV index.
-        Availability varies by region.
+        Every stream was verified as playing at build time.{" "}
+        <Link href="/live/australia" className="text-[var(--accent)] hover:underline">
+          Australian TV →
+        </Link>
       </p>
 
       <LiveBrowser

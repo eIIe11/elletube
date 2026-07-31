@@ -339,11 +339,22 @@ const LIVE_CATEGORY = {
 };
 
 async function buildLive() {
-  const [channels, streams] = await Promise.all([
+  const [channels, streams, logos] = await Promise.all([
     getJSON("https://iptv-org.github.io/api/channels.json"),
     getJSON("https://iptv-org.github.io/api/streams.json"),
+    getJSON("https://iptv-org.github.io/api/logos.json"),
   ]);
   const byId = new Map(channels.map((c) => [c.id, c]));
+
+  // Logos live in their own index; keep the widest in-use raster per channel.
+  const bestLogo = new Map();
+  for (const logo of logos) {
+    if (!logo.url || logo.in_use === false) continue;
+    if (!/^https:/.test(logo.url)) continue;
+    const prev = bestLogo.get(logo.channel);
+    if (prev && prev.width >= (logo.width ?? 0)) continue;
+    bestLogo.set(logo.channel, { url: logo.url, width: logo.width ?? 0 });
+  }
   const picked = new Map();
 
   for (const s of streams) {
@@ -355,7 +366,11 @@ async function buildLive() {
     if (!channel || channel.closed || channel.replaced_by || channel.is_nsfw) continue;
     const height = parseInt(String(s.quality ?? "0"), 10) || 0;
     const prev = picked.get(channel.id);
-    if (prev && prev.height >= height) continue;
+    if (prev) {
+      // Keep the alternates: if the best feed is dead, a lesser one may play.
+      prev.candidates.push({ url: s.url, height });
+      continue;
+    }
     const categories = (channel.categories ?? []).map((c) => LIVE_CATEGORY[c] ?? "General");
     picked.set(channel.id, {
       id: channel.id,
@@ -363,16 +378,116 @@ async function buildLive() {
       title: channel.name,
       url: s.url,
       height,
+      candidates: [{ url: s.url, height }],
       country: channel.country ?? "",
       languages: channel.languages ?? [],
-      logo: channel.logo ?? null,
+      logo: bestLogo.get(channel.id)?.url ?? null,
       genres: [...new Set(categories.length ? categories : ["General"])],
     });
   }
 
   const list = [...picked.values()].sort((a, b) => a.title.localeCompare(b.title));
-  console.log(`  live channels: ${list.length}`);
-  return list;
+  console.log(`  live candidates: ${list.length}`);
+  const alive = await filterAlive(list);
+  console.log(`  live channels that actually play: ${alive.length}`);
+  await verifyLogos(alive);
+  return alive;
+}
+
+/**
+ * Some hosts accept the connection and then never finish the body, so every
+ * probe is bounded by a hard wall-clock race, not just an abort signal.
+ */
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
+/**
+ * The open index is full of dead feeds. A stream counts as playable only if it
+ * returns a real HLS manifest. A 403/451 is reported separately: those feeds
+ * are alive but territory-locked, so they play for viewers inside the region
+ * and are labelled rather than deleted.
+ */
+async function probeStream(url) {
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(8000),
+      headers: { "User-Agent": "Mozilla/5.0 bootube-probe" },
+    });
+    if (res.status === 403 || res.status === 451) return "geo";
+    if (!res.ok) return "dead";
+    const body = (await withTimeout(res.text(), 8000, "")).slice(0, 20000);
+    return body.includes("#EXTM3U") ? "ok" : "dead";
+  } catch {
+    return "dead";
+  }
+}
+
+/** Broadcaster logos 404 often enough to matter; blank them so tiles fall back. */
+async function verifyLogos(list, concurrency = 40) {
+  const targets = list.filter((c) => c.logo);
+  let cursor = 0;
+  let dropped = 0;
+  async function worker() {
+    while (cursor < targets.length) {
+      const channel = targets[cursor++];
+      const ok = await withTimeout(
+        fetch(channel.logo, { method: "HEAD", signal: AbortSignal.timeout(7000) })
+          .then(
+            (res) =>
+              res.ok &&
+              String(res.headers.get("content-type")).startsWith("image")
+          )
+          .catch(() => false),
+        8000,
+        false
+      );
+      if (!ok) {
+        channel.logo = null;
+        dropped++;
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: concurrency }, worker));
+  console.log(`  logos checked: ${targets.length}, broken removed: ${dropped}`);
+}
+
+async function filterAlive(list, concurrency = 40) {
+  const alive = [];
+  let cursor = 0;
+  let done = 0;
+  async function worker() {
+    while (cursor < list.length) {
+      const channel = list[cursor++];
+      const candidates = channel.candidates
+        .sort((a, b) => b.height - a.height)
+        .slice(0, 4);
+      delete channel.candidates;
+
+      let geo = null;
+      for (const candidate of candidates) {
+        const result = await withTimeout(probeStream(candidate.url), 14000, "dead");
+        if (result === "ok") {
+          alive.push({ ...channel, url: candidate.url, height: candidate.height });
+          geo = null;
+          break;
+        }
+        if (result === "geo" && !geo) geo = candidate;
+      }
+      // Territory-locked but live: keep it, flagged, so it works from home.
+      if (geo) {
+        alive.push({ ...channel, url: geo.url, height: geo.height, geo: true });
+      }
+      if (++done % 500 === 0) {
+        console.log(`    probed ${done}/${list.length}, alive ${alive.length}`);
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: concurrency }, worker));
+  return alive.sort((a, b) => a.title.localeCompare(b.title));
 }
 
 /**
@@ -449,6 +564,16 @@ async function buildLibrary() {
 }
 
 async function main() {
+  // `--live` reprobes just the channel list, which is the part that rots.
+  if (process.argv.includes("--live")) {
+    console.log("Fetching IPTV-org open live catalog...");
+    const live = await buildLive();
+    await mkdir(OUT, { recursive: true });
+    await writeFile(join(OUT, "live.json"), JSON.stringify(live), "utf8");
+    console.log("Wrote live.json");
+    return;
+  }
+
   console.log("Fetching Internet Archive categories...");
   const vod = await buildVod();
   console.log(`  total titles: ${vod.length}`);

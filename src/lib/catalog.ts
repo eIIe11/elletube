@@ -4,6 +4,7 @@ import type {
   GenrePage,
   GenreSummary,
   HomePayload,
+  LiveAustralia,
   LiveCategory,
   LiveIndex,
   LibraryIndex,
@@ -23,6 +24,9 @@ export const getGenrePage = (slug: string, page: number) =>
 export const getLiveIndex = () => readShard<LiveIndex>("live/index.json");
 export const getLiveCategory = (slug: string) =>
   readShard<LiveCategory>(`live/${slug}.json`);
+
+export const getLiveAustralia = () =>
+  readShard<LiveAustralia>("live/australia.json");
 
 export const getLibraryIndex = () =>
   readShard<LibraryIndex>("library/index.json");
