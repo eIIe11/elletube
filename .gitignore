@@ -42,3 +42,6 @@ next-env.d.ts
 
 # raw ingest output (regenerate with npm run catalog)
 /src/data/
+
+# Local Netlify folder
+.netlify
