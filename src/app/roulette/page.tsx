@@ -163,7 +163,7 @@ export default function RoulettePage() {
           <img
             src={`https://archive.org/services/img/${encodeURIComponent(card.i)}`}
             alt=""
-            className="mt-4 h-[210px] w-[140px] rounded-xl object-cover ring-1 ring-white/10"
+            className="mt-4 aspect-video w-[260px] rounded-xl object-cover ring-1 ring-white/10"
           />
           <p className="mt-3 text-lg font-semibold">{card.t}</p>
           <p className="mt-1 text-xs text-muted">

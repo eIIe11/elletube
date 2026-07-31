@@ -32,12 +32,12 @@ export default async function TitlePage({
 
       <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-8">
         <div className="flex flex-col gap-8 sm:flex-row">
-          <div className="w-[190px] shrink-0 self-start overflow-hidden rounded-2xl ring-1 ring-white/10 sm:w-[240px]">
+          <div className="w-full shrink-0 self-start sm:w-[320px] overflow-hidden rounded-2xl ring-1 ring-white/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={item.poster}
               alt={item.title}
-              className="aspect-[2/3] w-full object-cover"
+              className="aspect-video w-full object-cover"
             />
           </div>
 

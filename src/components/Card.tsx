@@ -77,9 +77,11 @@ export function PosterCard({ item, eager = false }: { item: CardType; eager?: bo
       onPointerMove={tilt}
       onPointerLeave={reset}
       onBlur={reset}
-      className="group relative block w-[150px] shrink-0 transition-transform duration-200 ease-out will-change-transform sm:w-[176px]"
+      className="group relative block w-[210px] shrink-0 transition-transform duration-200 ease-out will-change-transform sm:w-[248px]"
     >
-      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-surface ring-1 ring-white/5 transition-shadow duration-300 group-hover:shadow-[0_18px_50px_-12px_rgba(255,45,111,0.45)] group-hover:ring-white/20">
+      {/* Archive art is a ~180x124 landscape frame, so a 16:9 tile renders it at
+          near-native resolution instead of upscaling it into a tall poster. */}
+      <div className="relative aspect-video overflow-hidden rounded-xl bg-surface ring-1 ring-white/5 transition-shadow duration-300 group-hover:shadow-[0_18px_50px_-12px_rgba(255,45,111,0.45)] group-hover:ring-white/20">
         {!loaded && !failed && <div className="skeleton absolute inset-0" />}
         {failed && (
           <div
@@ -90,7 +92,7 @@ export function PosterCard({ item, eager = false }: { item: CardType; eager?: bo
               } 58% 12%))`,
             }}
           >
-            <span className="line-clamp-4 text-sm font-semibold leading-tight text-white/90">
+            <span className="line-clamp-3 text-sm font-semibold leading-tight text-white/90">
               {item.t}
             </span>
           </div>

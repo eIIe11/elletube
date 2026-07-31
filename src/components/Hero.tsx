@@ -29,7 +29,9 @@ export function Hero({ items }: { items: SpotlightCard[] }) {
           src={`https://archive.org/services/img/${encodeURIComponent(entry.i)}`}
           alt=""
           aria-hidden={i !== index}
-          className={`absolute inset-0 h-full w-full scale-105 object-cover transition-opacity duration-1000 ${
+          // Source art is tiny, so it is treated as a deliberate blurred wash
+          // rather than presented as a sharp backdrop.
+          className={`absolute inset-0 h-full w-full scale-110 object-cover blur-2xl saturate-150 transition-opacity duration-1000 ${
             i === index ? "opacity-60" : "opacity-0"
           }`}
         />
