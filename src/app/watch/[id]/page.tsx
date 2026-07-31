@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Player } from "@/components/Player";
 import { getArchiveItem } from "@/lib/archive";
+import { formatRuntime } from "@/lib/catalog";
 
 export const revalidate = 86400;
 
@@ -29,7 +30,9 @@ export default async function WatchPage({
             {item.title}
           </h1>
           <p className="mt-1 text-sm text-muted">
-            {[item.year, item.creator].filter(Boolean).join(" · ")}
+            {[item.year, formatRuntime(item.runtime), item.creator]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         </div>
         <Link

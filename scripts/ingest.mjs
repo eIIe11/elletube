@@ -99,6 +99,22 @@ const MIN_DOWNLOADS = 300;
 const JUNK_TITLE =
   /(trailer|teaser|clip|excerpt|promo|preview|sample|test upload|sermon|bible study|jesus film|episode \d+ of|part \d+ of \d+|\bintro\b|behind the scenes|commercial|advert)/i;
 
+// Long-but-not-cinema uploads: speedruns, streams, talks, services, radio rips.
+const NOT_CINEMA =
+  /(speed ?run|any%|100%|playthrough|walkthrough|let'?s play|gameplay|\bspeedrun\b|twitch|stream archive|vod \d|lecture|seminar|conference|keynote|webinar|panel discussion|church service|mass service|worship service|full album|audiobook|podcast|radio (show|broadcast|hour)|city council|board meeting|town hall|deposition|oral argument|scanner audio|police scanner|dashcam|security (cam|footage)|\bunboxing\b|\breaction\b|\bhaul\b|\bvlog\b|zoom (call|meeting)|test pattern|colour bars|color bars)/i;
+
+// Console/gaming subject tags that mark an upload as game footage, not film.
+const GAME_SUBJECT =
+  /(speed ?run|playthrough|walkthrough|let'?s play|gameplay|emulator|twitch)/i;
+
+// The speedrun archive's naming convention: "Game (SNES) - 3:56 - Runner".
+const SPEEDRUN_TITLE =
+  /\((snes|nes|n64|ps1|ps2|psx|gba|gbc|nds|genesis|gamecube|wii|dos|pc|arcade)\)\s*-\s*\d+[:.]\d+/i;
+
+// Same idea against the synopsis, for uploads with an innocuous title.
+const NOT_CINEMA_DESC =
+  /(speed ?run|speedrun|playthrough|let'?s play|recorded (live )?on twitch|full (game )?playthrough)/i;
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function getJSON(url, tries = 4) {
@@ -187,6 +203,10 @@ const PLAYABLE = /^(h\.264|mpeg4|512kb mpeg4|ia mp4|hd mp4|matroska|ogg video)$/
 
 function isHighQuality(item) {
   if (JUNK_TITLE.test(item.title)) return false;
+  if (NOT_CINEMA.test(item.title)) return false;
+  if (SPEEDRUN_TITLE.test(item.title)) return false;
+  if (NOT_CINEMA_DESC.test(item.overview)) return false;
+  if (item.tags.some((t) => GAME_SUBJECT.test(t))) return false;
   if (item.popularity < MIN_DOWNLOADS) return false;
   if (!item.formats.some((f) => PLAYABLE.test(f))) return false;
   if (item.runtime !== null) return item.runtime >= MIN_RUNTIME_MIN;
