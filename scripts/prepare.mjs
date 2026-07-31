@@ -86,7 +86,10 @@ async function main() {
   const pick = (name, limit = 24) =>
     (byGenre.get(name) ?? []).slice(0, limit).map(toCard);
 
-  const spotlight = catalog
+  // Atrocity material stays in the catalogue but is never surfaced unasked.
+  const gentle = catalog.filter((item) => !item.heavy);
+
+  const spotlight = gentle
     .filter((item) => item.overview.length > 180 && item.year)
     .slice(0, 8)
     .map((item) => ({
@@ -123,7 +126,7 @@ async function main() {
 
   await writeJSON("home.json", {
     spotlight,
-    trending: catalog.slice(0, 24).map(toCard),
+    trending: gentle.slice(0, 24).map(toCard),
     rows: ROW_ORDER.filter((name) => byGenre.has(name)).map((name) => ({
       name,
       slug: slugify(name),
@@ -206,7 +209,7 @@ async function main() {
   await writeJSON("discover.json", {
     genres: genreKeys,
     // [id, title, year, kind, runtime, genreIndexes]
-    items: catalog.map((item) => [
+    items: gentle.map((item) => [
       item.id,
       item.title,
       item.year ?? 0,

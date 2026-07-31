@@ -84,7 +84,18 @@ const SOURCES = [
   { genre: "Cult Classics", kind: "movie", pages: 3, q: subj("cult film", "b-movie", "exploitation", "grindhouse") },
   { genre: "World Cinema", kind: "movie", pages: 4, q: subj("foreign film", "world cinema", "french cinema", "italian cinema", "soviet cinema", "bollywood") },
   { genre: "Serials", kind: "series", pages: 3, q: subj("serial", "cliffhanger", "chapter play") },
+
+  // Released government and intelligence archives.
+  { genre: "Declassified", kind: "documentary", pages: 5, minRuntime: 15, q: `(collection:(CIA_CREST) OR collection:(nationalarchives) OR collection:(fbi_files) OR ${subj("declassified", "classified", "cia", "fbi", "nsa", "kgb", "intelligence agency", "government archive", "national archives", "freedom of information", "psychological operations")})` },
 ];
+
+/**
+ * Atrocity and graphic-trauma material. Real history, kept in the catalogue,
+ * but never surfaced unasked: it is pulled out of the hero, trending and rails
+ * and only reachable by deliberately opening the Heavy Viewing category.
+ */
+const HEAVY_VIEWING =
+  /(holocaust|concentration camp|death camp|auschwitz|buchenwald|dachau|treblinka|bergen-belsen|nazi atroc|genocide|khmer rouge|killing fields|rwandan? genocide|ethnic cleansing|mass grave|war crimes?|nuremberg trial|einsatzgruppen|lynching|massacre|torture|execution footage|atomic bomb victims|hiroshima victims|nanking massacre|famine victims)/i;
 
 const FIELDS = [
   "identifier",
@@ -262,8 +273,18 @@ async function buildVod() {
       if (!item.title || !isHighQuality(item, source.minRuntime)) continue;
       const existing = seen.get(item.id);
       if (existing) {
-        existing.genres = [...new Set([...existing.genres, ...item.genres])];
+        if (!existing.heavy) {
+          existing.genres = [...new Set([...existing.genres, ...item.genres])];
+        }
         continue;
+      }
+      if (
+        HEAVY_VIEWING.test(item.title) ||
+        HEAVY_VIEWING.test(item.overview) ||
+        item.tags.some((tag) => HEAVY_VIEWING.test(tag))
+      ) {
+        item.genres = ["Heavy Viewing"];
+        item.heavy = true;
       }
       seen.set(item.id, item);
     }

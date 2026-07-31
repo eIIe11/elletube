@@ -40,6 +40,14 @@ export default async function GenrePage({
         {data.total.toLocaleString()} titles · page {data.page + 1} of {data.pages}
       </p>
 
+      {slug === "heavy-viewing" && (
+        <p className="mt-6 max-w-2xl rounded-xl bg-[var(--accent)]/10 p-4 text-sm leading-relaxed text-ink/85 ring-1 ring-[var(--accent)]/30">
+          Content warning: this category holds documentary footage of atrocities
+          — the Holocaust, genocide, war crimes and executions. It is kept out of
+          the home page, rails and shuffles, and only appears here.
+        </p>
+      )}
+
       <CardGrid items={data.items} />
 
       <nav className="mt-12 flex items-center justify-center gap-3">
